@@ -12,6 +12,17 @@ type StickerUpload = {
   created_at?: string;
 };
 
+const formatPlateForDisplay = (plate?: string) => {
+  if (!plate) return "Unknown Plate";
+
+  const compact = plate.toUpperCase().replace(/[^0-9A-Z]/g, "");
+  const match = compact.match(/^(01|03)([ABC]?)(\d{5})$/);
+  if (!match) return plate;
+
+  const [, region, series, digits] = match;
+  return `${region}${series ? ` ${series}` : ""} ${digits}`;
+};
+
 export default function Dashboard() {
   const [agentName, setAgentName] = useState("");
   const [totalUploads, setTotalUploads] = useState(0);
@@ -187,8 +198,11 @@ export default function Dashboard() {
                   )}
 
                   <div className="min-w-0">
-                    <p className="font-semibold text-white truncate">{upload.plate_number || "Unknown Plate"}</p>
-                    <p className="text-sm text-gray-400 truncate">{upload.driver_name || "Unknown Driver"}</p>
+                    <p className="font-semibold text-white">{formatPlateForDisplay(upload.plate_number)}</p>
+                    <p className="text-sm text-gray-400">{upload.driver_name || "Unknown Driver"}</p>
+                    {upload.created_at && (
+                      <p className="text-xs text-gray-500 mt-1">Uploaded: {new Date(upload.created_at).toLocaleString()}</p>
+                    )}
                   </div>
                 </div>
               ))}

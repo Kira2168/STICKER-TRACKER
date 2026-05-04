@@ -10,8 +10,11 @@ export default function UploadPage() {
   const router = useRouter();
 
   // Form Data
-  const [plateNumber, setPlateNumber] = useState("");
-  const [driverName, setDriverName] = useState("");
+  const [plateRegionCode, setPlateRegionCode] = useState<"" | "01" | "03">("");
+  const [plateSeries, setPlateSeries] = useState<"" | "A" | "B" | "C">("");
+  const [plateDigits, setPlateDigits] = useState("");
+  const [driverFirst, setDriverFirst] = useState("");
+  const [driverLast, setDriverLast] = useState("");
   const [driverPhone, setDriverPhone] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
 
@@ -24,6 +27,9 @@ export default function UploadPage() {
     setAgentId(localStorage.getItem("agent_id"));
     setAgentName(localStorage.getItem("agent_name"));
   }, []);
+
+  const isPlateValid = (plateRegionCode === "01" || plateRegionCode === "03") && /^\d{5}$/.test(plateDigits);
+  const formattedPlateNumber = `${plateRegionCode}${plateSeries ? ` ${plateSeries}` : ""} ${plateDigits}`.trim();
 
   const handleUpload = async () => {
     if (!imageFile || !agentId) {
@@ -53,8 +59,8 @@ export default function UploadPage() {
         .insert([{
           agent_id: agentId, 
           agent_name: agentName || "Unknown Agent",
-          plate_number: plateNumber,
-          driver_name: driverName,
+          plate_number: formattedPlateNumber,
+          driver_name: `${driverFirst} ${driverLast}`.trim(),
           driver_phone: driverPhone,
           image_url: publicUrl
         }]);
@@ -93,17 +99,47 @@ export default function UploadPage() {
                 <span className="text-sm font-bold uppercase tracking-widest">Step 01</span>
               </div>
               <h2 className="text-3xl font-bold mb-2 text-white">Vehicle Plate</h2>
-              <p className="text-gray-500 mb-8">Enter the vehicle's plate number clearly.</p>
-              <input 
-                autoFocus
-                type="text"
-                placeholder="e.g. AA-B12345"
-                value={plateNumber}
-                onChange={(e) => setPlateNumber(e.target.value.toUpperCase())}
-                className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-2xl outline-none focus:border-[#8b5cf6] transition-all placeholder:text-gray-700 text-white"
-              />
+              <p className="text-gray-500 mb-6">Format: region code (01 or 03), optional series (A/B/C), then 5 digits.</p>
+
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                <select
+                  autoFocus
+                  value={plateRegionCode}
+                  onChange={(e) => setPlateRegionCode(e.target.value as "" | "01" | "03")}
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl p-3 text-lg outline-none focus:border-[#8b5cf6] transition-all text-white"
+                >
+                  <option value="" className="text-black">Code</option>
+                  <option value="01" className="text-black">01</option>
+                  <option value="03" className="text-black">03</option>
+                </select>
+
+                <select
+                  value={plateSeries}
+                  onChange={(e) => setPlateSeries(e.target.value as "" | "A" | "B" | "C")}
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl p-3 text-lg outline-none focus:border-[#8b5cf6] transition-all text-white"
+                >
+                  <option value="" className="text-black">None</option>
+                  <option value="A" className="text-black">A</option>
+                  <option value="B" className="text-black">B</option>
+                  <option value="C" className="text-black">C</option>
+                </select>
+
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="12345"
+                  maxLength={5}
+                  value={plateDigits}
+                  onChange={(e) => setPlateDigits(e.target.value.replace(/\D/g, "").slice(0, 5))}
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl p-3 text-lg outline-none focus:border-[#8b5cf6] transition-all placeholder:text-gray-700 text-white"
+                />
+              </div>
+
+              <p className="text-sm text-gray-400 mb-2">Preview: {formattedPlateNumber || "-"}</p>
+              {!isPlateValid && <p className="text-xs text-amber-400">Plate must be 01 or 03, optional A/B/C, and exactly 5 digits.</p>}
+
               <button 
-                disabled={!plateNumber}
+                disabled={!isPlateValid}
                 onClick={() => setStep(2)}
                 className="mt-8 w-full bg-[#8b5cf6] hover:bg-[#7c3aed] py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
               >
@@ -123,19 +159,31 @@ export default function UploadPage() {
                 <span className="text-sm font-bold uppercase tracking-widest">Step 02</span>
               </div>
               <h2 className="text-3xl font-bold mb-2 text-white">Driver Name</h2>
-              <p className="text-gray-500 mb-8">Full name of the vehicle owner/driver.</p>
-              <input 
-                autoFocus
-                type="text"
-                placeholder="Enter full name"
-                value={driverName}
-                onChange={(e) => setDriverName(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-2xl outline-none focus:border-[#8b5cf6] transition-all placeholder:text-gray-700 text-white"
-              />
+              <p className="text-gray-500 mb-6">Enter the driver's first and last name.</p>
+
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="First name"
+                  value={driverFirst}
+                  onChange={(e) => setDriverFirst(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl p-3 text-lg outline-none focus:border-[#8b5cf6] transition-all placeholder:text-gray-700 text-white"
+                />
+
+                <input
+                  type="text"
+                  placeholder="Last name"
+                  value={driverLast}
+                  onChange={(e) => setDriverLast(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl p-3 text-lg outline-none focus:border-[#8b5cf6] transition-all placeholder:text-gray-700 text-white"
+                />
+              </div>
+
               <button 
-                disabled={!driverName}
+                disabled={!driverFirst || !driverLast}
                 onClick={() => setStep(3)}
-                className="mt-8 w-full bg-[#8b5cf6] hover:bg-[#7c3aed] py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
+                className="mt-2 w-full bg-[#8b5cf6] hover:bg-[#7c3aed] py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
               >
                 Next <ChevronRight size={20} />
               </button>
