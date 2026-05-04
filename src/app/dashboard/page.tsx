@@ -8,6 +8,7 @@ type StickerUpload = {
   id?: string | number;
   plate_number?: string;
   driver_name?: string;
+  driver_phone?: string;
   image_url?: string;
   created_at?: string;
 };
@@ -73,7 +74,7 @@ export default function Dashboard() {
       // Prefer newest-first using created_at. Fall back when that column is unavailable.
       const recentWithCreatedAt = await supabase
         .from("sticker_uploads")
-        .select("id, plate_number, driver_name, image_url, created_at")
+        .select("id, plate_number, driver_name, driver_phone, image_url, created_at")
         .eq("agent_id", agentId)
         .order("created_at", { ascending: false })
         .limit(5);
@@ -84,7 +85,7 @@ export default function Dashboard() {
       if (recentWithCreatedAt.error) {
         const recentFallback = await supabase
           .from("sticker_uploads")
-          .select("id, plate_number, driver_name, image_url")
+          .select("id, plate_number, driver_name, driver_phone, image_url")
           .eq("agent_id", agentId)
           .limit(5);
 
@@ -179,34 +180,93 @@ export default function Dashboard() {
               <p>No stickers uploaded yet</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {recentUploads.map((upload) => (
-                <div
-                  key={String(upload.id ?? `${upload.plate_number}-${upload.driver_name}`)}
-                  className="flex items-center gap-4 p-3 rounded-2xl border border-white/10 bg-white/3"
-                >
-                  {upload.image_url ? (
-                    <img
-                      src={upload.image_url}
-                      alt={`Sticker ${upload.plate_number || "upload"}`}
-                      className="w-14 h-14 rounded-xl object-cover border border-white/10"
-                    />
-                  ) : (
-                    <div className="w-14 h-14 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
-                      <ImageIcon size={18} className="text-gray-500" />
-                    </div>
-                  )}
+            <>
+              <div className="space-y-3 md:hidden">
+                {recentUploads.map((upload) => (
+                  <div
+                    key={String(upload.id ?? `${upload.plate_number}-${upload.driver_name}`)}
+                    className="rounded-2xl border border-white/10 bg-white/3 p-4"
+                  >
+                    <div className="flex items-start gap-3">
+                      {upload.image_url ? (
+                        <a
+                          href={upload.image_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="shrink-0"
+                          title="Open full photo"
+                        >
+                          <img
+                            src={upload.image_url}
+                            alt={`Sticker ${upload.plate_number || "upload"}`}
+                            className="w-16 h-16 rounded-xl object-cover border border-white/10"
+                          />
+                        </a>
+                      ) : (
+                        <div className="w-16 h-16 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                          <ImageIcon size={18} className="text-gray-500" />
+                        </div>
+                      )}
 
-                  <div className="min-w-0">
-                    <p className="font-semibold text-white">{formatPlateForDisplay(upload.plate_number)}</p>
-                    <p className="text-sm text-gray-400">{upload.driver_name || "Unknown Driver"}</p>
-                    {upload.created_at && (
-                      <p className="text-xs text-gray-500 mt-1">Uploaded: {new Date(upload.created_at).toLocaleString()}</p>
-                    )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs uppercase tracking-widest text-gray-500 mb-1">Code</p>
+                        <p className="font-semibold text-white text-lg">{formatPlateForDisplay(upload.plate_number)}</p>
+                        <p className="text-sm text-gray-400 mt-1">{upload.driver_name || "Unknown Driver"}</p>
+                        <p className="text-sm text-gray-300">{upload.driver_phone || "-"}</p>
+                        <p className="text-xs text-gray-500 mt-2">
+                          {upload.created_at ? `Uploaded: ${new Date(upload.created_at).toLocaleString()}` : "Uploaded: -"}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+
+              <div className="hidden md:block overflow-x-auto rounded-2xl border border-white/10">
+              <table className="w-full min-w-180 text-sm">
+                <thead className="bg-white/5 text-gray-300">
+                  <tr>
+                    <th className="text-left px-4 py-3 font-semibold">Code</th>
+                    <th className="text-left px-4 py-3 font-semibold">Driver Name</th>
+                    <th className="text-left px-4 py-3 font-semibold">Phone</th>
+                    <th className="text-left px-4 py-3 font-semibold">Uploaded</th>
+                    <th className="text-left px-4 py-3 font-semibold">Photo</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentUploads.map((upload) => (
+                    <tr key={String(upload.id ?? `${upload.plate_number}-${upload.driver_name}`)} className="border-t border-white/10">
+                      <td className="px-4 py-3 text-white font-medium">{formatPlateForDisplay(upload.plate_number)}</td>
+                      <td className="px-4 py-3 text-gray-200">{upload.driver_name || "Unknown Driver"}</td>
+                      <td className="px-4 py-3 text-gray-300">{upload.driver_phone || "-"}</td>
+                      <td className="px-4 py-3 text-gray-300">{upload.created_at ? new Date(upload.created_at).toLocaleString() : "-"}</td>
+                      <td className="px-4 py-3">
+                        {upload.image_url ? (
+                          <a
+                            href={upload.image_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-block"
+                            title="Open full photo"
+                          >
+                            <img
+                              src={upload.image_url}
+                              alt={`Sticker ${upload.plate_number || "upload"}`}
+                              className="w-12 h-12 rounded-lg object-cover border border-white/10 hover:border-[#8b5cf6] transition-colors"
+                            />
+                          </a>
+                        ) : (
+                          <div className="w-12 h-12 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
+                            <ImageIcon size={16} className="text-gray-500" />
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
+            </>
           )}
         </div>
       </div>
