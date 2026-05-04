@@ -209,27 +209,27 @@ export default function AdminDashboardPage() {
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden px-4 py-6 text-white sm:px-6" style={{ background: "var(--background)", color: "var(--foreground)" }}>
+    <main className="relative min-h-screen overflow-hidden px-3 py-4 text-white sm:px-6 sm:py-6" style={{ background: "var(--background)", color: "var(--foreground)" }}>
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-20 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-cyan-400/20 blur-3xl" />
         <div className="absolute right-0 top-32 h-64 w-64 rounded-full bg-sky-500/15 blur-3xl" />
       </div>
 
-      <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-6">
-        <div className="flex items-center justify-between rounded-4xl border theme-shell p-4 shadow-2xl shadow-black/30 backdrop-blur-2xl sm:p-5">
+      <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-4 sm:gap-6">
+        <div className="flex flex-col gap-4 rounded-4xl border theme-shell p-4 shadow-2xl shadow-black/30 backdrop-blur-2xl sm:flex-row sm:items-center sm:justify-between sm:p-5">
           <div className="flex items-center gap-3">
             <Image src="/little.png" alt="Little logo" width={48} height={48} className="rounded-xl border border-white/10 bg-white/10 p-1" priority />
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-400">Admin</p>
-              <h1 className="text-xl font-bold leading-tight sm:text-2xl">Welcome, {adminName}</h1>
+              <h1 className="text-lg font-bold leading-tight sm:text-2xl">Welcome, {adminName}</h1>
               <p className="text-xs text-gray-400 sm:text-sm">Little control center</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 self-start sm:self-auto">
               <button
                 onClick={() => setShowAgentsModal((s) => !s)}
-                className="rounded-2xl border border-white/10 bg-white/5 p-2 text-gray-300 hover:border-white/20"
+                className="rounded-2xl border border-white/10 bg-white/5 p-3 text-gray-300 hover:border-white/20 sm:p-2"
                 title="Menu"
               >
                 <Menu size={18} />
@@ -247,7 +247,7 @@ export default function AdminDashboardPage() {
 
           {/* Agents dropdown (simple) */}
           {showAgentsModal && (
-            <div className="fixed left-4 top-20 z-40 w-72 rounded-2xl border theme-shell bg-black/70 p-3 shadow-2xl">
+            <div className="fixed inset-x-3 top-20 z-40 rounded-3xl border theme-shell bg-black/80 p-3 shadow-2xl sm:left-4 sm:inset-x-auto sm:w-72">
               <div className="flex items-center justify-between">
                 <h4 className="text-sm font-semibold">Menu</h4>
                 <button onClick={() => setShowAgentsModal(false)} className="p-1 rounded">
@@ -286,10 +286,10 @@ export default function AdminDashboardPage() {
             </div>
           )}
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
           <div className="rounded-4xl border theme-shell p-6">
             <p className="text-xs uppercase tracking-[0.3em] text-gray-400">Total Uploads</p>
-            <p className="mt-3 text-4xl font-black text-white">{totalUploads}</p>
+            <p className="mt-3 text-3xl font-black text-white sm:text-4xl">{totalUploads}</p>
           </div>
           <div className="rounded-4xl border theme-shell p-6">
             <p className="text-xs uppercase tracking-[0.3em] text-gray-400">Visibility</p>
@@ -365,7 +365,10 @@ export default function AdminDashboardPage() {
                       {agents.map((a) => (
                         <li key={String(a.id)}>
                           <button
-                            onClick={() => setSelectedAgent(a)}
+                            onClick={() => {
+                              const agentKey = a.agent_id || a.id;
+                              router.push(`/admin/agents/${encodeURIComponent(String(agentKey))}`);
+                            }}
                             className="w-full text-left rounded-md px-2 py-2 hover:bg-white/5"
                           >
                             <div className="flex items-center justify-between">
@@ -416,8 +419,8 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        <div className="rounded-4xl border theme-shell p-4 shadow-2xl shadow-black/25 backdrop-blur-2xl sm:p-6">
-          <h2 className="mb-4 text-xl font-bold">All Uploads</h2>
+        <div className="rounded-4xl border theme-shell p-3 shadow-2xl shadow-black/25 backdrop-blur-2xl sm:p-6">
+          <h2 className="mb-4 text-lg font-bold sm:text-xl">All Uploads</h2>
 
           {loading ? (
             <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-white/10 py-12 text-gray-500">
@@ -437,7 +440,7 @@ export default function AdminDashboardPage() {
             <>
               <div className="space-y-3 md:hidden">
                 {rows.map((row) => (
-                  <div key={String(row.id)} className="rounded-3xl border border-white/10 bg-black/20 p-4 shadow-lg shadow-black/10">
+                  <div key={String(row.id)} className="rounded-3xl border border-white/10 bg-black/20 p-3 shadow-lg shadow-black/10 sm:p-4">
                     <div className="flex items-start gap-3">
                       {row.image_url ? (
                         <a href={row.image_url} target="_blank" rel="noopener noreferrer" className="shrink-0" title="Open full photo">
@@ -466,14 +469,14 @@ export default function AdminDashboardPage() {
                         <div className="mt-3 flex gap-2">
                           <button
                             onClick={() => openEdit(row)}
-                            className="inline-flex items-center gap-1 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-gray-200"
+                            className="inline-flex flex-1 items-center justify-center gap-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-gray-200"
                           >
                             <Pencil size={12} /> Edit
                           </button>
                           <button
                             onClick={() => handleDelete(String(row.id || ""))}
                             disabled={deletingId === String(row.id || "")}
-                            className="inline-flex items-center gap-1 rounded-xl border border-red-400/40 bg-red-500/10 px-3 py-1.5 text-xs text-red-300 disabled:opacity-50"
+                            className="inline-flex flex-1 items-center justify-center gap-1 rounded-xl border border-red-400/40 bg-red-500/10 px-3 py-2 text-xs text-red-300 disabled:opacity-50"
                           >
                             <Trash2 size={12} /> {deletingId === String(row.id || "") ? "Deleting..." : "Delete"}
                           </button>
@@ -550,10 +553,10 @@ export default function AdminDashboardPage() {
         </div>
 
         {editForm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="w-full max-w-2xl rounded-3xl border theme-shell p-5 shadow-2xl backdrop-blur-2xl sm:p-6">
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-3 sm:items-center sm:p-4">
+            <div className="w-full max-w-2xl rounded-t-3xl border theme-shell p-4 shadow-2xl backdrop-blur-2xl sm:rounded-3xl sm:p-6">
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-xl font-bold">Update Upload Record</h3>
+                <h3 className="text-lg font-bold sm:text-xl">Update Upload Record</h3>
                 <button
                   onClick={() => setEditForm(null)}
                   className="rounded-xl border border-white/10 bg-white/5 p-2 text-gray-300"
@@ -627,17 +630,17 @@ export default function AdminDashboardPage() {
                 </label>
               </div>
 
-              <div className="mt-4 flex justify-end gap-2">
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
                 <button
                   onClick={() => setEditForm(null)}
-                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200"
+                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-gray-200 sm:py-2"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleUpdate}
                   disabled={saving}
-                  className="inline-flex items-center gap-2 rounded-xl border border-sky-400/40 bg-sky-500/20 px-4 py-2 text-sm text-sky-200 disabled:opacity-60"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-sky-400/40 bg-sky-500/20 px-4 py-3 text-sm text-sky-200 disabled:opacity-60 sm:py-2"
                 >
                   <Save size={14} /> {saving ? "Saving..." : "Save Changes"}
                 </button>

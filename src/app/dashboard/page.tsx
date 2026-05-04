@@ -147,29 +147,29 @@ export default function Dashboard() {
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden px-4 py-6 text-white sm:px-6" style={{ background: "var(--background)", color: "var(--foreground)" }}>
+    <main className="relative min-h-screen overflow-hidden px-3 py-4 text-white sm:px-6 sm:py-6" style={{ background: "var(--background)", color: "var(--foreground)" }}>
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-24 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-[#8b5cf6]/15 blur-3xl" />
         <div className="absolute right-0 top-32 h-64 w-64 rounded-full bg-cyan-400/10 blur-3xl" />
         <div className="absolute bottom-0 left-0 h-72 w-72 rounded-full bg-fuchsia-500/10 blur-3xl" />
       </div>
 
-      <div className="relative mx-auto flex w-full max-w-4xl flex-col gap-6">
+      <div className="relative mx-auto flex w-full max-w-4xl flex-col gap-4 sm:gap-6">
         {/* Header */}
-        <div className="flex items-center justify-between rounded-4xl border theme-shell p-4 shadow-2xl shadow-black/30 backdrop-blur-2xl sm:p-5">
+        <div className="flex flex-col gap-4 rounded-4xl border theme-shell p-4 shadow-2xl shadow-black/30 backdrop-blur-2xl sm:flex-row sm:items-center sm:justify-between sm:p-5">
           <div className="flex items-center gap-3">
             <Image src="/little.png" alt="Little logo" width={48} height={48} className="rounded-xl border border-white/10 bg-white/10 p-1" priority />
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#c4b5fd]">Little</p>
-              <h1 className="text-xl font-bold leading-tight sm:text-2xl">Welcome, <span className="text-[#c4b5fd]">{agentName}</span></h1>
+              <h1 className="text-lg font-bold leading-tight sm:text-2xl">Welcome, <span className="text-[#c4b5fd]">{agentName}</span></h1>
               <p className="text-xs text-gray-400 sm:text-sm">Field sticker operations dashboard</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 self-start sm:self-auto">
             <ThemeToggle />
             <button
               onClick={handleLogout}
-              className="rounded-2xl border border-white/10 bg-white/5 p-3 text-gray-300 transition-all hover:border-white/20 hover:bg-white/10 hover:text-white"
+              className="rounded-2xl border border-white/10 bg-white/5 p-3 text-gray-300 transition-all hover:border-white/20 hover:bg-white/10 hover:text-white sm:p-3"
               aria-label="Log out"
             >
               <LogOut size={18} />
@@ -182,28 +182,28 @@ export default function Dashboard() {
         
           <button
             onClick={() => router.push("/dashboard/upload")}
-            className="group md:col-span-2 rounded-4xl border border-[#8b5cf6]/25 bg-linear-to-br from-[#8b5cf6]/15 via-white/5 to-cyan-400/10 p-6 text-left shadow-2xl shadow-black/20 transition-all hover:-translate-y-1 hover:border-[#8b5cf6]/50 hover:shadow-[#8b5cf6]/10 sm:p-8"
+            className="group rounded-4xl border border-[#8b5cf6]/25 bg-linear-to-br from-[#8b5cf6]/15 via-white/5 to-cyan-400/10 p-5 text-left shadow-2xl shadow-black/20 transition-all hover:-translate-y-1 hover:border-[#8b5cf6]/50 hover:shadow-[#8b5cf6]/10 sm:p-8 md:col-span-2"
           >
             <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-3xl bg-linear-to-br from-[#8b5cf6] to-[#a855f7] shadow-lg shadow-[#8b5cf6]/30 transition-transform group-hover:scale-105">
               <Plus size={30} strokeWidth={3} />
             </div>
-            <h2 className="text-2xl font-bold sm:text-3xl">New Sticker Upload</h2>
+            <h2 className="text-xl font-bold sm:text-3xl">New Sticker Upload</h2>
             <p className="mt-2 max-w-md text-sm leading-6 text-gray-300 sm:text-base">Register a new vehicle sticker in a few taps and sync it instantly to the dashboard.</p>
           </button>
 
-          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-1">
-            <div className="rounded-4xl border theme-shell p-6 backdrop-blur-2xl">
+          <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-1">
+            <div className="rounded-4xl border theme-shell p-5 backdrop-blur-2xl sm:p-6">
               <p className="text-xs uppercase tracking-[0.3em] text-gray-400">Total Uploads</p>
-              <p className="mt-3 text-4xl font-black text-white">{totalUploads}</p>
+              <p className="mt-3 text-3xl font-black text-white sm:text-4xl">{totalUploads}</p>
               <div className="mt-4 flex items-center text-xs text-emerald-400">
                 <CheckCircle size={14} className="mr-1" />
                 <span>Syncing live with database</span>
               </div>
             </div>
 
-            <div className="rounded-4xl border theme-shell p-6 backdrop-blur-2xl">
+            <div className="rounded-4xl border theme-shell p-5 backdrop-blur-2xl sm:p-6">
               <p className="text-xs uppercase tracking-[0.3em] text-gray-400">Status</p>
-              <p className="mt-3 text-lg font-semibold text-white">Ready for mobile capture</p>
+              <p className="mt-3 text-base font-semibold text-white sm:text-lg">Ready for mobile capture</p>
               <p className="mt-2 text-sm leading-6 text-gray-300">Open the upload flow, capture a sticker, and confirm it appears in recent submissions.</p>
             </div>
           </div>

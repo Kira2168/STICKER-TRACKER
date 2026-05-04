@@ -79,17 +79,17 @@ export default function UploadPage() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-6 font-sans text-white" style={{ background: "var(--background)", color: "var(--foreground)" }}>
+    <main className="min-h-screen flex items-center justify-center p-3 font-sans text-white sm:p-6" style={{ background: "var(--background)", color: "var(--foreground)" }}>
       <div className="w-full max-w-lg">
         
         {/* Progress Bar */}
-        <div className="flex gap-2 mb-8">
+        <div className="flex gap-2 mb-6 sm:mb-8">
           {[1, 2, 3, 4].map((s) => (
             <div key={s} className={`h-1 flex-1 rounded-full transition-all duration-500 ${step >= s ? "bg-[#8b5cf6]" : "bg-white/10"}`} />
           ))}
         </div>
 
-        <div className="glass-card p-8 border border-white/10 rounded-3xl bg-white/5 backdrop-blur-xl shadow-2xl">
+        <div className="glass-card rounded-3xl border border-white/10 bg-white/5 p-5 shadow-2xl backdrop-blur-xl sm:p-8">
           
           {/* STEP 1: PLATE NUMBER */}
           {step === 1 && (
@@ -98,15 +98,15 @@ export default function UploadPage() {
                 <Hash size={20} />
                 <span className="text-sm font-bold uppercase tracking-widest">Step 01</span>
               </div>
-              <h2 className="text-3xl font-bold mb-2 text-white">Vehicle Plate</h2>
+              <h2 className="text-2xl font-bold mb-2 text-white sm:text-3xl">Vehicle Plate</h2>
               <p className="text-gray-500 mb-6">Format: region code (01 or 03), optional series (A/B/C), then 5 digits.</p>
 
-              <div className="grid grid-cols-3 gap-3 mb-4">
+              <div className="grid grid-cols-3 gap-2 mb-4 sm:gap-3">
                 <select
                   autoFocus
                   value={plateRegionCode}
                   onChange={(e) => setPlateRegionCode(e.target.value as "" | "01" | "03")}
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl p-3 text-lg outline-none focus:border-[#8b5cf6] transition-all text-white"
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl p-3 text-base outline-none focus:border-[#8b5cf6] transition-all text-white sm:text-lg"
                 >
                   <option value="" className="text-black">Code</option>
                   <option value="01" className="text-black">01</option>
@@ -116,7 +116,7 @@ export default function UploadPage() {
                 <select
                   value={plateSeries}
                   onChange={(e) => setPlateSeries(e.target.value as "" | "A" | "B" | "C")}
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl p-3 text-lg outline-none focus:border-[#8b5cf6] transition-all text-white"
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl p-3 text-base outline-none focus:border-[#8b5cf6] transition-all text-white sm:text-lg"
                 >
                   <option value="" className="text-black">None</option>
                   <option value="A" className="text-black">A</option>
@@ -131,7 +131,7 @@ export default function UploadPage() {
                   maxLength={5}
                   value={plateDigits}
                   onChange={(e) => setPlateDigits(e.target.value.replace(/\D/g, "").slice(0, 5))}
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl p-3 text-lg outline-none focus:border-[#8b5cf6] transition-all placeholder:text-gray-700 text-white"
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl p-3 text-base outline-none focus:border-[#8b5cf6] transition-all placeholder:text-gray-700 text-white sm:text-lg"
                 />
               </div>
 
@@ -158,17 +158,17 @@ export default function UploadPage() {
                 <User size={20} />
                 <span className="text-sm font-bold uppercase tracking-widest">Step 02</span>
               </div>
-              <h2 className="text-3xl font-bold mb-2 text-white">Driver Name</h2>
+              <h2 className="text-2xl font-bold mb-2 text-white sm:text-3xl">Driver Name</h2>
               <p className="text-gray-500 mb-6">Enter the driver's first and last name.</p>
 
-              <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="grid grid-cols-1 gap-3 mb-4 sm:grid-cols-2">
                 <input
                   autoFocus
                   type="text"
                   placeholder="First name"
                   value={driverFirst}
                   onChange={(e) => setDriverFirst(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl p-3 text-lg outline-none focus:border-[#8b5cf6] transition-all placeholder:text-gray-700 text-white"
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl p-3 text-base outline-none focus:border-[#8b5cf6] transition-all placeholder:text-gray-700 text-white sm:text-lg"
                 />
 
                 <input
@@ -176,7 +176,7 @@ export default function UploadPage() {
                   placeholder="Last name"
                   value={driverLast}
                   onChange={(e) => setDriverLast(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl p-3 text-lg outline-none focus:border-[#8b5cf6] transition-all placeholder:text-gray-700 text-white"
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl p-3 text-base outline-none focus:border-[#8b5cf6] transition-all placeholder:text-gray-700 text-white sm:text-lg"
                 />
               </div>
 
@@ -200,7 +200,7 @@ export default function UploadPage() {
                 <Phone size={20} />
                 <span className="text-sm font-bold uppercase tracking-widest">Step 03</span>
               </div>
-              <h2 className="text-3xl font-bold mb-2 text-white">Driver Phone</h2>
+              <h2 className="text-2xl font-bold mb-2 text-white sm:text-3xl">Driver Phone</h2>
               <p className="text-gray-500 mb-8">Primary contact number for the driver.</p>
               <input 
                 autoFocus
@@ -208,7 +208,7 @@ export default function UploadPage() {
                 placeholder="09..."
                 value={driverPhone}
                 onChange={(e) => setDriverPhone(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-2xl outline-none focus:border-[#8b5cf6] transition-all placeholder:text-gray-700 text-white"
+                className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-xl outline-none focus:border-[#8b5cf6] transition-all placeholder:text-gray-700 text-white sm:p-5 sm:text-2xl"
               />
               <button 
                 disabled={!driverPhone}
@@ -230,7 +230,7 @@ export default function UploadPage() {
                 <Camera size={20} />
                 <span className="text-sm font-bold uppercase tracking-widest">Step 04</span>
               </div>
-              <h2 className="text-3xl font-bold mb-2 text-white">Sticker Photo</h2>
+              <h2 className="text-2xl font-bold mb-2 text-white sm:text-3xl">Sticker Photo</h2>
               <p className="text-gray-500 mb-8">Take a clear photo or upload from gallery.</p>
               
               <label className="cursor-pointer block group">
@@ -240,7 +240,7 @@ export default function UploadPage() {
                        <div className="w-16 h-16 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-3">
                          <Check size={32} />
                        </div>
-                       <span className="text-white font-medium block truncate w-40 mx-auto">{imageFile.name}</span>
+                       <span className="mx-auto block w-40 truncate font-medium text-white">{imageFile.name}</span>
                        <span className="text-xs text-gray-500 mt-1 block">Tap to change</span>
                     </div>
                   ) : (
@@ -261,7 +261,7 @@ export default function UploadPage() {
               <button 
                 disabled={!imageFile || loading}
                 onClick={handleUpload}
-                className="mt-8 w-full bg-[#8b5cf6] hover:bg-[#7c3aed] py-4 rounded-2xl font-bold flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg shadow-purple-500/20 transition-all active:scale-95"
+                className="mt-8 w-full rounded-2xl bg-[#8b5cf6] py-4 font-bold flex items-center justify-center gap-2 shadow-lg shadow-purple-500/20 transition-all active:scale-95 hover:bg-[#7c3aed] disabled:opacity-50"
               >
                 {loading ? <Loader2 className="animate-spin" /> : "Complete Registration"}
               </button>
@@ -274,7 +274,7 @@ export default function UploadPage() {
               <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl shadow-green-500/20">
                 <Check size={40} className="text-white" strokeWidth={3} />
               </div>
-              <h2 className="text-3xl font-bold mb-2 text-white">Success!</h2>
+              <h2 className="text-2xl font-bold mb-2 text-white sm:text-3xl">Success!</h2>
               <p className="text-gray-500 mb-8">The sticker record and photo have been securely saved.</p>
               <button 
                 onClick={() => router.push("/dashboard")}
