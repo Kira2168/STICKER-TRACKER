@@ -79,7 +79,7 @@ export default function UploadPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#050505] text-white flex items-center justify-center p-6 font-sans">
+    <main className="min-h-screen flex items-center justify-center p-6 font-sans text-white" style={{ background: "var(--background)", color: "var(--foreground)" }}>
       <div className="w-full max-w-lg">
         
         {/* Progress Bar */}

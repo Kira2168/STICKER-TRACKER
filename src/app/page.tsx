@@ -3,11 +3,15 @@ import { useState } from "react";
 // Using relative path to avoid "Module not found" errors
 import { supabase } from "../lib/supabase"; 
 import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { Eye, EyeOff } from "lucide-react";
+import { ThemeToggle } from "../components/theme-toggle";
 
 export default function LoginPage() {
   const [id, setId] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -42,44 +46,79 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-[#050505] p-4 font-sans">
-      <div className="glass-card p-8 w-full max-w-md purple-glow border border-[#8b5cf6]/20 bg-white/5 backdrop-blur-xl rounded-2xl">
-        <h1 className="text-3xl font-bold text-white mb-2 text-center tracking-tight">ARIDE</h1>
-        <p className="text-gray-400 text-center mb-8 text-sm">Agent Sticker Portal</p>
-        
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Agent ID</label>
-            <input 
-              type="text" 
-              value={id}
-              onChange={(e) => setId(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:border-[#8b5cf6] outline-none transition-all placeholder:text-gray-600"
-              placeholder="e.g. aride001"
-              required
-            />
+    <main className="relative min-h-screen overflow-hidden px-4 py-6 text-white font-sans" style={{ background: "var(--background)", color: "var(--foreground)" }}>
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-[#8b5cf6]/20 blur-3xl" />
+        <div className="absolute -bottom-16 -left-10 h-56 w-56 rounded-full bg-cyan-400/10 blur-3xl" />
+        <div className="absolute top-32 right-0 h-64 w-64 rounded-full bg-fuchsia-500/10 blur-3xl" />
+      </div>
+
+      <div className="relative mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-md items-center justify-center">
+        <div className="w-full rounded-4xl border theme-shell p-6 shadow-2xl shadow-black/40 backdrop-blur-2xl sm:p-8">
+          <div className="mb-5 flex justify-end">
+            <ThemeToggle />
           </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Password</label>
-            <input 
-              type="password" 
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:border-[#8b5cf6] outline-none transition-all placeholder:text-gray-600"
-              placeholder="••••••••"
-              required
-            />
+          <div className="flex flex-col items-center text-center">
+            <div className="mb-4 rounded-3xl border border-white/10 bg-white/10 p-3 shadow-lg shadow-black/30">
+              <Image src="/little.png" alt="Little logo" width={72} height={72} className="rounded-2xl" priority />
+            </div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.35em] text-[#c4b5fd]">Little</p>
+            <h1 className="text-4xl font-black tracking-tight text-white">Agent Portal</h1>
+            <p className="mt-3 max-w-xs text-sm leading-6 text-gray-300">
+              Sign in to register sticker uploads and keep your field work synced with the database.
+            </p>
+
+            <div className="mt-5 flex flex-wrap justify-center gap-2 text-xs text-gray-300">
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">Mobile optimized</span>
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">Live database sync</span>
+            </div>
           </div>
 
-          <button 
-            type="submit" 
-            disabled={loading}
-            className="w-full bg-[#8b5cf6] hover:bg-[#7c3aed] text-white font-bold py-3 rounded-lg transition-all shadow-lg shadow-purple-500/20 active:scale-[0.98] disabled:opacity-50"
-          >
-            {loading ? "Authenticating..." : "Login"}
-          </button>
-        </form>
+          <form onSubmit={handleLogin} className="mt-8 space-y-5">
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-200">Agent ID</label>
+              <input
+                type="text"
+                value={id}
+                onChange={(e) => setId(e.target.value)}
+                className="w-full rounded-2xl border border-white/10 bg-black/20 p-4 text-white outline-none transition-all placeholder:text-gray-500 focus:border-[#8b5cf6] focus:bg-black/30"
+                placeholder="e.g. little001"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-200">Password</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full rounded-2xl border border-white/10 bg-black/20 py-4 pl-4 pr-12 text-white outline-none transition-all placeholder:text-gray-500 focus:border-[#8b5cf6] focus:bg-black/30"
+                  placeholder="••••••••"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((current) => !current)}
+                  className="absolute inset-y-0 right-0 flex items-center justify-center rounded-r-2xl px-4 text-gray-400 transition-colors hover:text-white"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="group flex w-full items-center justify-center gap-2 rounded-2xl theme-button py-4 font-bold text-white shadow-lg shadow-[#8b5cf6]/25 transition-transform active:scale-[0.99] disabled:opacity-50"
+            >
+              <span>{loading ? "Authenticating..." : "Login to Little"}</span>
+              <span className="transition-transform group-hover:translate-x-0.5">→</span>
+            </button>
+          </form>
+        </div>
       </div>
     </main>
   );

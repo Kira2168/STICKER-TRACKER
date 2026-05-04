@@ -1,8 +1,27 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #050505;
+  --foreground: #f3f4f6;
+  --panel: rgba(255, 255, 255, 0.06);
+  --panel-strong: rgba(255, 255, 255, 0.1);
+  --surface: rgba(0, 0, 0, 0.22);
+  --border: rgba(255, 255, 255, 0.1);
+  --muted: #9ca3af;
+  --accent: #38bdf8;
+  --accent-strong: #0ea5e9;
+}
+
+:root[data-theme="light"] {
+  --background: #f3f8ff;
+  --foreground: #0f172a;
+  --panel: rgba(255, 255, 255, 0.78);
+  --panel-strong: rgba(255, 255, 255, 0.94);
+  --surface: rgba(255, 255, 255, 0.72);
+  --border: rgba(15, 23, 42, 0.08);
+  --muted: #475569;
+  --accent: #0284c7;
+  --accent-strong: #0369a1;
 }
 
 @theme inline {
@@ -14,13 +33,119 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #050505;
+    --foreground: #f3f4f6;
   }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background:
+    radial-gradient(circle at top, rgba(56, 189, 248, 0.16), transparent 32%),
+    radial-gradient(circle at bottom right, rgba(34, 211, 238, 0.12), transparent 26%),
+    var(--background);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: rgba(56, 189, 248, 0.35);
+  color: #fff;
+}
+
+.glass-card {
+  backdrop-filter: blur(24px);
+}
+
+.purple-glow {
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.1), 0 24px 80px rgba(0, 0, 0, 0.45);
+}
+
+.theme-shell {
+  background: var(--panel);
+  border-color: var(--border);
+  color: var(--foreground);
+}
+
+.theme-panel {
+  background: var(--panel-strong);
+  border-color: var(--border);
+}
+
+.theme-surface {
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+.theme-accent {
+  color: var(--accent);
+}
+
+.theme-button {
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+}
+
+:root[data-theme="light"] .text-white {
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .text-gray-200 {
+  color: #1e293b !important;
+}
+
+:root[data-theme="light"] .text-gray-300 {
+  color: #334155 !important;
+}
+
+:root[data-theme="light"] .text-gray-400 {
+  color: #475569 !important;
+}
+
+:root[data-theme="light"] .text-gray-500 {
+  color: #64748b !important;
+}
+
+:root[data-theme="light"] .bg-white\/5 {
+  background-color: rgba(255, 255, 255, 0.82) !important;
+}
+
+:root[data-theme="light"] .bg-white\/10 {
+  background-color: rgba(255, 255, 255, 0.96) !important;
+}
+
+:root[data-theme="light"] .bg-black\/20 {
+  background-color: rgba(255, 255, 255, 0.84) !important;
+}
+
+:root[data-theme="light"] .bg-black\/30 {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+}
+
+:root[data-theme="light"] .bg-black\/40 {
+  background-color: rgba(255, 255, 255, 0.96) !important;
+}
+
+:root[data-theme="light"] .border-white\/10 {
+  border-color: rgba(15, 23, 42, 0.1) !important;
+}
+
+:root[data-theme="light"] .border-white\/5 {
+  border-color: rgba(15, 23, 42, 0.06) !important;
+}
+
+:root[data-theme="light"] .shadow-black\/40,
+:root[data-theme="light"] .shadow-black\/30,
+:root[data-theme="light"] .shadow-black\/25,
+:root[data-theme="light"] .shadow-black\/20,
+:root[data-theme="light"] .shadow-black\/10 {
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.08) !important;
 }
