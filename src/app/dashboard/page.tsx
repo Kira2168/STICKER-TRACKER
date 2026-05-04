@@ -114,6 +114,28 @@ export default function Dashboard() {
 
     fetchUploads();
 
+    // Subscribe to realtime changes for this agent so the dashboard updates immediately
+    if (agentId) {
+      const channel = supabase
+        .channel(`agent-${agentId}-stickers`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'sticker_uploads', filter: `agent_id=eq.${agentId}` },
+          (payload) => {
+            console.log('Realtime payload for agent:', payload);
+            // Re-fetch latest uploads when any change happens
+            fetchUploads();
+          }
+        )
+        .subscribe();
+
+      // cleanup subscription on unmount
+      return () => {
+        isMounted = false;
+        channel.unsubscribe();
+      };
+    }
+
     return () => {
       isMounted = false;
     };

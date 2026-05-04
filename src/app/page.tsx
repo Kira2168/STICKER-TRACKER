@@ -21,7 +21,7 @@ export default function LoginPage() {
     try {
       if (id === "beka" && password === "bekas123") {
         localStorage.setItem("is_admin", "true");
-        localStorage.setItem("admin_name", "Beka");
+        localStorage.setItem("admin_name", "Mr Beka Melese");
         localStorage.removeItem("agent_id");
         localStorage.removeItem("agent_name");
         router.push("/admin");
