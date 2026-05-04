@@ -19,6 +19,15 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      if (id === "beka" && password === "bekas123") {
+        localStorage.setItem("is_admin", "true");
+        localStorage.setItem("admin_name", "Beka");
+        localStorage.removeItem("agent_id");
+        localStorage.removeItem("agent_name");
+        router.push("/admin");
+        return;
+      }
+
       // Direct lookup in your custom 'agents' table
       const { data, error } = await supabase
         .from('agents')
@@ -32,6 +41,8 @@ export default function LoginPage() {
         setLoading(false);
       } else {
         // Save agent details in local storage for the dashboard to use
+        localStorage.removeItem("is_admin");
+        localStorage.removeItem("admin_name");
         localStorage.setItem("agent_id", data.agent_id);
         localStorage.setItem("agent_name", data.full_name);
         
