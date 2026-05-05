@@ -15,6 +15,15 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
+  const readApiError = async (resp: Response) => {
+    try {
+      const data = (await resp.json()) as { error?: string };
+      return data.error || null;
+    } catch {
+      return null;
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -34,6 +43,16 @@ export default function LoginPage() {
         localStorage.removeItem("agent_id");
         localStorage.removeItem("agent_name");
         router.push("/admin");
+        return;
+      }
+
+      if (adminResp.status >= 500) {
+        const serverMessage = await readApiError(adminResp);
+        alert(
+          serverMessage ||
+            "Admin login is not configured on the server. Set ADMIN_LOGIN_ID, ADMIN_LOGIN_PASSWORD, and ADMIN_JWT_SECRET, then redeploy."
+        );
+        setLoading(false);
         return;
       }
 

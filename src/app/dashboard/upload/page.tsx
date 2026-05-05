@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useRouter } from "next/navigation";
 import { ChevronRight, Camera, Check, ArrowLeft, Loader2, User, Phone, Hash } from "lucide-react";
@@ -17,6 +17,8 @@ export default function UploadPage() {
   const [driverLast, setDriverLast] = useState("");
   const [driverPhone, setDriverPhone] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const galleryInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
 
   // Identity state
   const [agentId] = useState<string | null>(() => {
@@ -233,31 +235,58 @@ export default function UploadPage() {
               </div>
               <h2 className="text-2xl font-bold mb-2 text-white sm:text-3xl">Sticker Photo</h2>
               <p className="text-gray-500 mb-8">Take a clear photo or upload from gallery.</p>
-              
-              <label className="cursor-pointer block group">
-                <div className="aspect-square bg-white/5 border-2 border-dashed border-white/10 group-hover:border-[#8b5cf6]/50 rounded-3xl flex flex-col items-center justify-center transition-all overflow-hidden relative">
+
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 font-semibold text-white transition-colors hover:bg-white/15"
+                >
+                  Open Camera
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => galleryInputRef.current?.click()}
+                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 font-semibold text-white transition-colors hover:bg-white/10"
+                >
+                  Upload From Gallery
+                </button>
+
+                <input
+                  ref={cameraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                />
+
+                <input
+                  ref={galleryInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                />
+
+                <div className="aspect-square bg-white/5 border-2 border-dashed border-white/10 rounded-3xl flex flex-col items-center justify-center transition-all overflow-hidden relative">
                   {imageFile ? (
                     <div className="text-center p-4">
-                       <div className="w-16 h-16 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-3">
-                         <Check size={32} />
-                       </div>
-                       <span className="mx-auto block w-40 truncate font-medium text-white">{imageFile.name}</span>
-                       <span className="text-xs text-gray-500 mt-1 block">Tap to change</span>
+                      <div className="w-16 h-16 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <Check size={32} />
+                      </div>
+                      <span className="mx-auto block w-48 truncate font-medium text-white">{imageFile.name}</span>
+                      <span className="text-xs text-gray-500 mt-1 block">Image selected</span>
                     </div>
                   ) : (
                     <>
-                      <Camera size={48} className="text-gray-700 mb-2 group-hover:text-[#8b5cf6] transition-colors" />
-                      <span className="text-gray-500 group-hover:text-gray-300">Tap to Capture / Upload</span>
+                      <Camera size={48} className="text-gray-700 mb-2" />
+                      <span className="text-gray-500">No image selected yet</span>
                     </>
                   )}
                 </div>
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  className="hidden" 
-                  onChange={(e) => setImageFile(e.target.files?.[0] || null)}
-                />
-              </label>
+              </div>
 
               <button 
                 disabled={!imageFile || loading}

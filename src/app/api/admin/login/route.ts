@@ -9,9 +9,15 @@ function jsonError(message: string, status = 500) {
   return NextResponse.json({ error: message }, { status });
 }
 
+function normalizeEnvCredential(value: string | undefined) {
+  if (!value) return null;
+  const trimmed = value.trim();
+  return trimmed.replace(/^['"]|['"]$/g, "");
+}
+
 export async function POST(req: Request) {
-  const adminId = process.env.ADMIN_LOGIN_ID || null;
-  const adminPassword = process.env.ADMIN_LOGIN_PASSWORD || null;
+  const adminId = normalizeEnvCredential(process.env.ADMIN_LOGIN_ID);
+  const adminPassword = normalizeEnvCredential(process.env.ADMIN_LOGIN_PASSWORD);
 
   if (!adminId) return jsonError("Missing ADMIN_LOGIN_ID env var", 500);
   if (!adminPassword) return jsonError("Missing ADMIN_LOGIN_PASSWORD env var", 500);
@@ -24,7 +30,7 @@ export async function POST(req: Request) {
 
     if (!id || !password) return jsonError("Missing id or password", 400);
 
-    if (id !== adminId || password !== adminPassword) {
+    if (id.toLowerCase() !== adminId.toLowerCase() || password !== adminPassword) {
       return jsonError("Invalid credentials", 401);
     }
 
