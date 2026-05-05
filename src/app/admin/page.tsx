@@ -7,6 +7,17 @@ import Image from "next/image";
 import { supabase } from "../../lib/supabase";
 import { ThemeToggle } from "../../components/theme-toggle";
 
+const canRenderRemoteImage = (url?: string) => {
+  if (!url) return false;
+  if (url.startsWith('/')) return true;
+  try {
+    const parsed = new URL(url);
+    return parsed.hostname.endsWith('.supabase.co');
+  } catch {
+    return false;
+  }
+};
+
 type StickerUpload = {
   id?: string | number;
   agent_id?: string;
@@ -18,11 +29,23 @@ type StickerUpload = {
   created_at?: string;
 };
 
+type AgentRow = {
+  id?: string;
+  agent_id?: string;
+  agent_name?: string;
+  full_name?: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+};
+
 type EditForm = {
   id: string;
   agent_id: string;
   agent_name: string;
-  plate_number: string;
+  plate_code: "01" | "03" | "";
+  plate_series: "A" | "B" | "C" | "";
+  plate_digits: string;
   driver_name: string;
   driver_phone: string;
   image_url: string;
@@ -39,8 +62,28 @@ const formatPlateForDisplay = (plate?: string) => {
   return `${region}${series ? ` ${series}` : ""} ${digits}`;
 };
 
+const parsePlateParts = (plate?: string) => {
+  if (!plate) return { code: "-", series: "None", number: "-" };
+
+  const compact = plate.toUpperCase().replace(/[^0-9A-Z]/g, "");
+  const match = compact.match(/^(01|03)([ABC]?)(\d{5})$/);
+
+  if (!match) return { code: plate, series: "None", number: "-" };
+
+  const [, code, series, number] = match;
+  return { code, series: series || "None", number };
+};
+
+const composePlateNumber = (code: string, series: string, digits: string) => {
+  const trimmedDigits = digits.replace(/\D/g, "").slice(0, 5);
+  return `${code}${series ? ` ${series}` : ""} ${trimmedDigits}`.trim();
+};
+
 export default function AdminDashboardPage() {
-  const [adminName, setAdminName] = useState("Mr Beka Melese");
+  const [adminName] = useState(() => {
+    if (typeof window === "undefined") return "Mr Beka Melese";
+    return localStorage.getItem("admin_name") || "Mr Beka Melese";
+  });
   const [totalUploads, setTotalUploads] = useState(0);
   const [rows, setRows] = useState<StickerUpload[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,9 +93,11 @@ export default function AdminDashboardPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [showAgentsModal, setShowAgentsModal] = useState(false);
-  const [agents, setAgents] = useState<any[]>([]);
+  const [agents, setAgents] = useState<AgentRow[]>([]);
   const [agentsLoading, setAgentsLoading] = useState(false);
-  const [selectedAgent, setSelectedAgent] = useState<any | null>(null);
+  const [selectedAgent, setSelectedAgent] = useState<AgentRow | null>(null);
+  const [selectedAgentUploads, setSelectedAgentUploads] = useState<StickerUpload[]>([]);
+  const [selectedAgentUploadsLoading, setSelectedAgentUploadsLoading] = useState(false);
   const router = useRouter();
 
   const fetchAllUploads = async () => {
@@ -86,23 +131,54 @@ export default function AdminDashboardPage() {
     setLoading(false);
   };
 
+  const fetchUploadsForSelectedAgent = async (agent: AgentRow) => {
+    const agentKey = agent.agent_id || agent.id;
+    if (!agentKey) {
+      setSelectedAgentUploads([]);
+      return;
+    }
+
+    setSelectedAgentUploadsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("sticker_uploads")
+        .select("id, agent_id, agent_name, plate_number, driver_name, driver_phone, image_url, created_at")
+        .eq("agent_id", agentKey)
+        .order("created_at", { ascending: false })
+        .limit(200);
+
+      if (error) {
+        alert(`Failed to load uploads: ${error.message}`);
+        setSelectedAgentUploads([]);
+        return;
+      }
+
+      setSelectedAgentUploads((data as StickerUpload[]) || []);
+    } finally {
+      setSelectedAgentUploadsLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (localStorage.getItem("is_admin") !== "true") {
       router.push("/");
       return;
     }
 
-    setAdminName(localStorage.getItem("admin_name") || "Mr Beka Melese");
-
-    fetchAllUploads();
+    void (async () => {
+      await fetchAllUploads();
+    })();
   }, [router]);
 
   const openEdit = (row: StickerUpload) => {
+    const plate = parsePlateParts(row.plate_number);
     setEditForm({
       id: String(row.id || ""),
       agent_id: row.agent_id || "",
       agent_name: row.agent_name || "",
-      plate_number: row.plate_number || "",
+      plate_code: plate.code === "01" || plate.code === "03" ? plate.code : "",
+      plate_series: plate.series === "A" || plate.series === "B" || plate.series === "C" ? plate.series : "",
+      plate_digits: plate.number === "-" ? "" : plate.number,
       driver_name: row.driver_name || "",
       driver_phone: row.driver_phone || "",
       image_url: row.image_url || "",
@@ -112,16 +188,17 @@ export default function AdminDashboardPage() {
   const handleUpdate = async () => {
     if (!editForm) return;
 
+    const composedPlate = composePlateNumber(editForm.plate_code, editForm.plate_series, editForm.plate_digits);
     const requiredFields = [
       editForm.agent_id,
       editForm.agent_name,
-      editForm.plate_number,
+      composedPlate,
       editForm.driver_name,
       editForm.driver_phone,
       editForm.image_url,
     ];
 
-    if (requiredFields.some((value) => !value.trim())) {
+    if (requiredFields.some((value) => !(value || "").toString().trim())) {
       alert("Please fill all fields before updating.");
       return;
     }
@@ -133,12 +210,13 @@ export default function AdminDashboardPage() {
       const resp = await fetch('/api/admin/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           id: editForm.id,
           changes: {
             agent_id: editForm.agent_id.trim(),
             agent_name: editForm.agent_name.trim(),
-            plate_number: editForm.plate_number.trim(),
+            plate_number: composePlateNumber(editForm.plate_code, editForm.plate_series, editForm.plate_digits),
             driver_name: editForm.driver_name.trim(),
             driver_phone: editForm.driver_phone.trim(),
             image_url: editForm.image_url.trim(),
@@ -166,8 +244,11 @@ export default function AdminDashboardPage() {
       setSaving(false);
       setStatusMessage('Upload updated successfully. Reloading latest data...');
       await fetchAllUploads();
-    } catch (err: any) {
-      alert(`Update failed: ${String(err)}`);
+      if (selectedAgent) {
+        await fetchUploadsForSelectedAgent(selectedAgent);
+      }
+    } catch (err: unknown) {
+      alert(`Update failed: ${err instanceof Error ? err.message : String(err)}`);
       setSaving(false);
     }
   };
@@ -181,6 +262,7 @@ export default function AdminDashboardPage() {
       const resp = await fetch('/api/admin/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ id }),
       });
       const result = await resp.json();
@@ -193,11 +275,12 @@ export default function AdminDashboardPage() {
       }
 
       setRows((currentRows) => currentRows.filter((row) => String(row.id) !== id));
+      setSelectedAgentUploads((currentRows) => currentRows.filter((row) => String(row.id) !== id));
       setTotalUploads((current) => Math.max(0, current - 1));
       setDeletingId(null);
       setStatusMessage('Upload deleted successfully.');
-    } catch (err: any) {
-      alert(`Delete failed: ${String(err)}`);
+    } catch (err: unknown) {
+      alert(`Delete failed: ${err instanceof Error ? err.message : String(err)}`);
       setDeletingId(null);
     }
   };
@@ -205,6 +288,8 @@ export default function AdminDashboardPage() {
   const handleLogout = () => {
     localStorage.removeItem("is_admin");
     localStorage.removeItem("admin_name");
+    // Best-effort server-side cookie cleanup.
+    void fetch('/api/admin/logout', { method: 'POST', credentials: 'include' });
     router.push("/");
   };
 
@@ -226,7 +311,7 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 self-start sm:self-auto">
+          <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
               <button
                 onClick={() => setShowAgentsModal((s) => !s)}
                 className="rounded-2xl border border-white/10 bg-white/5 p-3 text-gray-300 hover:border-white/20 sm:p-2"
@@ -265,10 +350,10 @@ export default function AdminDashboardPage() {
                         alert(`Failed to load agents: ${error.message}`);
                         setAgents([]);
                       } else {
-                        setAgents((data as any[]) || []);
+                        setAgents((data as AgentRow[]) || []);
                       }
-                    } catch (err: any) {
-                      alert(String(err));
+                    } catch (err: unknown) {
+                      alert(err instanceof Error ? err.message : String(err));
                       setAgents([]);
                     } finally {
                       setAgentsLoading(false);
@@ -342,10 +427,10 @@ export default function AdminDashboardPage() {
                             alert(`Failed to load agents: ${error.message}`);
                             setAgents([]);
                           } else {
-                            setAgents((data as any[]) || []);
+                            setAgents((data as AgentRow[]) || []);
                           }
-                        } catch (err: any) {
-                          alert(String(err));
+                        } catch (err: unknown) {
+                          alert(err instanceof Error ? err.message : String(err));
                         } finally {
                           setAgentsLoading(false);
                         }
@@ -366,8 +451,8 @@ export default function AdminDashboardPage() {
                         <li key={String(a.id)}>
                           <button
                             onClick={() => {
-                              const agentKey = a.agent_id || a.id;
-                              router.push(`/admin/agents/${encodeURIComponent(String(agentKey))}`);
+                              setSelectedAgent(a);
+                              void fetchUploadsForSelectedAgent(a);
                             }}
                             className="w-full text-left rounded-md px-2 py-2 hover:bg-white/5"
                           >
@@ -388,20 +473,11 @@ export default function AdminDashboardPage() {
                 <div className="col-span-2 rounded-lg border border-white/10 bg-black/20 p-4">
                   {selectedAgent ? (
                     <div>
-                      <h4 className="text-lg font-semibold">{selectedAgent.agent_name || selectedAgent.name || selectedAgent.agent_id}</h4>
-                      <p className="text-sm text-gray-400 mt-1">ID: {selectedAgent.agent_id || selectedAgent.id}</p>
-                      {selectedAgent.email && <p className="text-sm text-gray-300 mt-2">Email: {selectedAgent.email}</p>}
-                      {selectedAgent.phone && <p className="text-sm text-gray-300 mt-1">Phone: {selectedAgent.phone}</p>}
-                      <div className="mt-4 flex gap-2">
-                        <button
-                          onClick={() => {
-                            // open a simple edit modal pre-filled with selected agent? For now keep read-only
-                            alert('Agent editing not implemented yet.');
-                          }}
-                          className="rounded-xl border border-sky-400/40 bg-sky-500/20 px-4 py-2 text-sm text-sky-200"
-                        >
-                          Edit Agent
-                        </button>
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h4 className="text-lg font-semibold">{selectedAgent.agent_name || selectedAgent.name || selectedAgent.full_name || selectedAgent.agent_id}</h4>
+                          <p className="text-sm text-gray-400 mt-1">ID: {selectedAgent.agent_id || selectedAgent.id}</p>
+                        </div>
                         <button
                           onClick={() => setSelectedAgent(null)}
                           className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200"
@@ -409,9 +485,94 @@ export default function AdminDashboardPage() {
                           Back to list
                         </button>
                       </div>
+                      <div className="mt-4">
+                        <div className="mb-3 flex items-center justify-between">
+                          <p className="text-sm font-semibold text-white">Uploads for this agent</p>
+                          <button
+                            onClick={() => void fetchUploadsForSelectedAgent(selectedAgent)}
+                            className="text-xs text-gray-300"
+                          >
+                            Refresh
+                          </button>
+                        </div>
+
+                        {selectedAgentUploadsLoading ? (
+                          <p className="text-sm text-gray-400">Loading uploads...</p>
+                        ) : selectedAgentUploads.length === 0 ? (
+                          <p className="text-sm text-gray-400">No uploads found for this agent</p>
+                        ) : (
+                          <div className="space-y-3 max-h-80 overflow-auto pr-1">
+                            {selectedAgentUploads.map((upload) => {
+                              const plate = parsePlateParts(upload.plate_number);
+                              return (
+                                <div key={String(upload.id)} className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                                  <div className="flex items-start gap-3">
+                                    {upload.image_url ? (
+                                      <a href={upload.image_url} target="_blank" rel="noopener noreferrer" className="shrink-0" title="Open full photo">
+                                        {canRenderRemoteImage(upload.image_url) ? (
+                                          <Image
+                                            src={upload.image_url}
+                                            alt={upload.plate_number || "upload"}
+                                            width={56}
+                                            height={56}
+                                            className="h-14 w-14 rounded-xl border border-white/10 object-cover"
+                                          />
+                                        ) : (
+                                          <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-white/10 bg-black/20">
+                                            <ImageIcon size={16} className="text-gray-500" />
+                                          </div>
+                                        )}
+                                      </a>
+                                    ) : (
+                                      <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-white/10 bg-black/20">
+                                        <ImageIcon size={16} className="text-gray-500" />
+                                      </div>
+                                    )}
+
+                                    <div className="min-w-0 flex-1">
+                                      <div className="grid grid-cols-3 gap-2 text-xs">
+                                        <div className="rounded-xl border border-white/10 bg-black/20 px-2 py-2">
+                                          <p className="uppercase tracking-[0.2em] text-gray-500">Code</p>
+                                          <p className="mt-1 font-semibold text-white">{plate.code}</p>
+                                        </div>
+                                        <div className="rounded-xl border border-white/10 bg-black/20 px-2 py-2">
+                                          <p className="uppercase tracking-[0.2em] text-gray-500">Series</p>
+                                          <p className="mt-1 font-semibold text-white">{plate.series}</p>
+                                        </div>
+                                        <div className="rounded-xl border border-white/10 bg-black/20 px-2 py-2">
+                                          <p className="uppercase tracking-[0.2em] text-gray-500">Number</p>
+                                          <p className="mt-1 font-semibold text-white">{plate.number}</p>
+                                        </div>
+                                      </div>
+                                      <p className="mt-2 text-sm text-gray-300">{upload.driver_name || 'Unknown Driver'}</p>
+                                      <p className="text-xs text-gray-500">{upload.driver_phone || '-'}</p>
+                                      <p className="mt-1 text-xs text-gray-500">{upload.created_at ? new Date(upload.created_at).toLocaleString() : '-'}</p>
+                                      <div className="mt-3 flex gap-2">
+                                        <button
+                                          onClick={() => openEdit(upload)}
+                                          className="inline-flex flex-1 items-center justify-center gap-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-gray-200"
+                                        >
+                                          <Pencil size={12} /> Edit
+                                        </button>
+                                        <button
+                                          onClick={() => handleDelete(String(upload.id || ''))}
+                                          disabled={deletingId === String(upload.id || '')}
+                                          className="inline-flex flex-1 items-center justify-center gap-1 rounded-xl border border-red-400/40 bg-red-500/10 px-3 py-2 text-xs text-red-300 disabled:opacity-50"
+                                        >
+                                          <Trash2 size={12} /> {deletingId === String(upload.id || '') ? 'Deleting...' : 'Delete'}
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-400">Select an agent to see details</p>
+                    <p className="text-sm text-gray-400">Select an agent to see their uploads</p>
                   )}
                 </div>
               </div>
@@ -444,11 +605,19 @@ export default function AdminDashboardPage() {
                     <div className="flex items-start gap-3">
                       {row.image_url ? (
                         <a href={row.image_url} target="_blank" rel="noopener noreferrer" className="shrink-0" title="Open full photo">
-                          <img
-                            src={row.image_url}
-                            alt={`Sticker ${row.plate_number || "upload"}`}
-                            className="h-16 w-16 rounded-xl border border-white/10 object-cover"
-                          />
+                          {canRenderRemoteImage(row.image_url) ? (
+                            <Image
+                              src={row.image_url}
+                              alt={`Sticker ${row.plate_number || "upload"}`}
+                              width={64}
+                              height={64}
+                              className="h-16 w-16 rounded-xl border border-white/10 object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5">
+                              <ImageIcon size={18} className="text-gray-500" />
+                            </div>
+                          )}
                         </a>
                       ) : (
                         <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5">
@@ -460,7 +629,25 @@ export default function AdminDashboardPage() {
                         <p className="text-[11px] uppercase tracking-[0.3em] text-gray-500">Agent</p>
                         <p className="text-sm text-gray-300">{row.agent_name || "Unknown Agent"}</p>
                         <p className="text-xs text-gray-500">ID: {row.agent_id || "-"}</p>
-                        <p className="mt-1 text-lg font-bold text-white">{formatPlateForDisplay(row.plate_number)}</p>
+                        {(() => {
+                          const plate = parsePlateParts(row.plate_number);
+                          return (
+                            <div className="mt-2 grid grid-cols-3 gap-2 text-xs sm:text-sm">
+                              <div className="rounded-xl border border-white/10 bg-white/5 px-2 py-2">
+                                <p className="uppercase tracking-[0.2em] text-gray-500">Code</p>
+                                <p className="mt-1 font-semibold text-white">{plate.code}</p>
+                              </div>
+                              <div className="rounded-xl border border-white/10 bg-white/5 px-2 py-2">
+                                <p className="uppercase tracking-[0.2em] text-gray-500">Series</p>
+                                <p className="mt-1 font-semibold text-white">{plate.series}</p>
+                              </div>
+                              <div className="rounded-xl border border-white/10 bg-white/5 px-2 py-2">
+                                <p className="uppercase tracking-[0.2em] text-gray-500">Number</p>
+                                <p className="mt-1 font-semibold text-white">{plate.number}</p>
+                              </div>
+                            </div>
+                          );
+                        })()}
                         <p className="text-sm text-gray-300">{row.driver_name || "Unknown Driver"}</p>
                         <p className="text-sm text-gray-400">{row.driver_phone || "-"}</p>
                         <p className="mt-2 text-xs text-gray-500">
@@ -493,6 +680,8 @@ export default function AdminDashboardPage() {
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.25em]">Agent</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.25em]">Code</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.25em]">Series</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.25em]">Number</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.25em]">Driver</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.25em]">Phone</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.25em]">Uploaded</th>
@@ -507,18 +696,35 @@ export default function AdminDashboardPage() {
                           <p>{row.agent_name || "Unknown Agent"}</p>
                           <p className="text-xs text-gray-500">{row.agent_id || "-"}</p>
                         </td>
-                        <td className="px-4 py-4 font-medium text-white">{formatPlateForDisplay(row.plate_number)}</td>
+                        {(() => {
+                          const plate = parsePlateParts(row.plate_number);
+                          return (
+                            <>
+                              <td className="px-4 py-4 font-medium text-white">{plate.code}</td>
+                              <td className="px-4 py-4 text-gray-200">{plate.series}</td>
+                              <td className="px-4 py-4 text-gray-200">{plate.number}</td>
+                            </>
+                          );
+                        })()}
                         <td className="px-4 py-4 text-gray-200">{row.driver_name || "Unknown Driver"}</td>
                         <td className="px-4 py-4 text-gray-300">{row.driver_phone || "-"}</td>
                         <td className="px-4 py-4 text-gray-300">{row.created_at ? new Date(row.created_at).toLocaleString() : "-"}</td>
                         <td className="px-4 py-4">
                           {row.image_url ? (
                             <a href={row.image_url} target="_blank" rel="noopener noreferrer" className="inline-block" title="Open full photo">
-                              <img
-                                src={row.image_url}
-                                alt={`Sticker ${row.plate_number || "upload"}`}
-                                className="h-12 w-12 rounded-xl border border-white/10 object-cover transition-colors hover:border-sky-400"
-                              />
+                              {canRenderRemoteImage(row.image_url) ? (
+                                <Image
+                                  src={row.image_url}
+                                  alt={`Sticker ${row.plate_number || "upload"}`}
+                                  width={48}
+                                  height={48}
+                                  className="h-12 w-12 rounded-xl border border-white/10 object-cover transition-colors hover:border-sky-400"
+                                />
+                              ) : (
+                                <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-white/5">
+                                  <ImageIcon size={16} className="text-gray-500" />
+                                </div>
+                              )}
                             </a>
                           ) : (
                             <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-white/5">
@@ -568,9 +774,12 @@ export default function AdminDashboardPage() {
 
               <div className="mb-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-gray-300">
                 Editing record for <span className="font-semibold text-white">{editForm.driver_name || "Unknown Driver"}</span>
-                {editForm.plate_number ? (
-                  <span> with plate <span className="font-semibold text-white">{formatPlateForDisplay(editForm.plate_number)}</span></span>
-                ) : null}
+                <span>
+                  {' '}with plate{' '}
+                  <span className="font-semibold text-white">
+                    {formatPlateForDisplay(composePlateNumber(editForm.plate_code, editForm.plate_series, editForm.plate_digits))}
+                  </span>
+                </span>
               </div>
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -592,15 +801,47 @@ export default function AdminDashboardPage() {
                     placeholder="Agent Name"
                   />
                 </label>
-                <label className="space-y-1 text-sm text-gray-300">
-                  <span className="block text-xs uppercase tracking-[0.25em] text-gray-500">Plate Number</span>
-                  <input
-                    value={editForm.plate_number}
-                    onChange={(e) => setEditForm({ ...editForm, plate_number: e.target.value })}
-                    className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-white"
-                    placeholder="Plate Number"
-                  />
-                </label>
+                  <div className="space-y-1 text-sm text-gray-300 sm:col-span-2">
+                    <span className="block text-xs uppercase tracking-[0.25em] text-gray-500">Plate Number</span>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                      <label className="space-y-1 text-sm text-gray-300">
+                        <span className="block text-[11px] uppercase tracking-[0.2em] text-gray-500">Code</span>
+                        <select
+                          value={editForm.plate_code}
+                          onChange={(e) => setEditForm({ ...editForm, plate_code: e.target.value as EditForm["plate_code"] })}
+                          className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-white"
+                        >
+                          <option value="">Select</option>
+                          <option value="01">01</option>
+                          <option value="03">03</option>
+                        </select>
+                      </label>
+                      <label className="space-y-1 text-sm text-gray-300">
+                        <span className="block text-[11px] uppercase tracking-[0.2em] text-gray-500">Series</span>
+                        <select
+                          value={editForm.plate_series}
+                          onChange={(e) => setEditForm({ ...editForm, plate_series: e.target.value as EditForm["plate_series"] })}
+                          className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-white"
+                        >
+                          <option value="">None / Optional</option>
+                          <option value="A">A</option>
+                          <option value="B">B</option>
+                          <option value="C">C</option>
+                        </select>
+                      </label>
+                      <label className="space-y-1 text-sm text-gray-300">
+                        <span className="block text-[11px] uppercase tracking-[0.2em] text-gray-500">Number</span>
+                        <input
+                          value={editForm.plate_digits}
+                          onChange={(e) => setEditForm({ ...editForm, plate_digits: e.target.value.replace(/\D/g, "").slice(0, 5) })}
+                          inputMode="numeric"
+                          maxLength={5}
+                          className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-white"
+                          placeholder="12345"
+                        />
+                      </label>
+                    </div>
+                  </div>
                 <label className="space-y-1 text-sm text-gray-300">
                   <span className="block text-xs uppercase tracking-[0.25em] text-gray-500">Driver Name</span>
                   <input

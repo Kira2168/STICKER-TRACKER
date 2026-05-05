@@ -2,6 +2,20 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+## Environment Variables
+
+Create a `.env.local` file (for local dev) or set the same values in Vercel (Production + Preview):
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY` (server-only, required for admin edit/delete under RLS)
+
+Admin login (server-side session cookie for `/api/admin/*`):
+
+- `ADMIN_LOGIN_ID`
+- `ADMIN_LOGIN_PASSWORD`
+- `ADMIN_JWT_SECRET` (random long string)
+
 First, run the development server:
 
 ```bash

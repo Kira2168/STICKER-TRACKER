@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
-import { getAdminCookieName, verifyAdminSessionToken } from '../../../../lib/admin-session';
+import { getAdminCookieName, verifyAdminSessionToken } from '../../../../../lib/admin-session';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || null;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || null;
@@ -24,18 +24,18 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { id } = body as { id?: string };
-    if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 });
+    if (!id) return jsonError('Missing id', 400);
 
     const { data, error } = await supabaseAdmin
-      .from('sticker_uploads')
+      .from('agents')
       .delete()
       .eq('id', id)
       .select();
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return jsonError(error.message, 500);
 
     return NextResponse.json({ data });
   } catch (err: unknown) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
+    return jsonError(err instanceof Error ? err.message : String(err), 500);
   }
 }

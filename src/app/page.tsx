@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Eye, EyeOff } from "lucide-react";
 import { ThemeToggle } from "../components/theme-toggle";
+import { InstallToPhone } from "../components/install-to-phone";
 
 export default function LoginPage() {
   const [id, setId] = useState("");
@@ -19,9 +20,17 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      if (id === "beka" && password === "bekas123") {
+      // Try admin login first. If it fails, fall back to agent lookup.
+      const adminResp = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, password }),
+        credentials: "include",
+      });
+
+      if (adminResp.ok) {
         localStorage.setItem("is_admin", "true");
-        localStorage.setItem("admin_name", "Mr Beka Melese");
+        localStorage.setItem("admin_name", "Admin");
         localStorage.removeItem("agent_id");
         localStorage.removeItem("agent_name");
         router.push("/admin");
@@ -83,6 +92,8 @@ export default function LoginPage() {
               <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">Mobile optimized</span>
               <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">Live database sync</span>
             </div>
+
+            <InstallToPhone />
           </div>
 
           <form onSubmit={handleLogin} className="mt-8 space-y-5">

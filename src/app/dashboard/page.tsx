@@ -6,6 +6,17 @@ import { supabase } from "../../lib/supabase";
 import Image from "next/image";
 import { ThemeToggle } from "../../components/theme-toggle";
 
+const canRenderRemoteImage = (url?: string) => {
+  if (!url) return false;
+  if (url.startsWith('/')) return true;
+  try {
+    const parsed = new URL(url);
+    return parsed.hostname.endsWith('.supabase.co');
+  } catch {
+    return false;
+  }
+};
+
 type StickerUpload = {
   id?: string | number;
   plate_number?: string;
@@ -15,19 +26,23 @@ type StickerUpload = {
   created_at?: string;
 };
 
-const formatPlateForDisplay = (plate?: string) => {
-  if (!plate) return "Unknown Plate";
+const parsePlateParts = (plate?: string) => {
+  if (!plate) return { code: "-", series: "None", number: "-" };
 
   const compact = plate.toUpperCase().replace(/[^0-9A-Z]/g, "");
   const match = compact.match(/^(01|03)([ABC]?)(\d{5})$/);
-  if (!match) return plate;
 
-  const [, region, series, digits] = match;
-  return `${region}${series ? ` ${series}` : ""} ${digits}`;
+  if (!match) return { code: plate, series: "None", number: "-" };
+
+  const [, code, series, number] = match;
+  return { code, series: series || "None", number };
 };
 
 export default function Dashboard() {
-  const [agentName, setAgentName] = useState("");
+  const [agentName] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem("agent_name") || "";
+  });
   const [totalUploads, setTotalUploads] = useState(0);
   const [recentUploads, setRecentUploads] = useState<StickerUpload[]>([]);
   const [loadingUploads, setLoadingUploads] = useState(true);
@@ -45,8 +60,6 @@ export default function Dashboard() {
       router.push("/"); // Send back to login if not logged in
       return;
     }
-
-    setAgentName(name);
 
     const fetchUploads = async () => {
       if (!agentId) {
@@ -251,11 +264,19 @@ export default function Dashboard() {
                           className="shrink-0"
                           title="Open full photo"
                         >
-                          <img
-                            src={upload.image_url}
-                            alt={`Sticker ${upload.plate_number || "upload"}`}
-                            className="w-16 h-16 rounded-xl object-cover border border-white/10"
-                          />
+                          {canRenderRemoteImage(upload.image_url) ? (
+                            <Image
+                              src={upload.image_url}
+                              alt={`Sticker ${upload.plate_number || "upload"}`}
+                              width={64}
+                              height={64}
+                              className="w-16 h-16 rounded-xl object-cover border border-white/10"
+                            />
+                          ) : (
+                            <div className="w-16 h-16 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                              <ImageIcon size={18} className="text-gray-500" />
+                            </div>
+                          )}
                         </a>
                       ) : (
                         <div className="w-16 h-16 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
@@ -264,8 +285,27 @@ export default function Dashboard() {
                       )}
 
                       <div className="min-w-0 flex-1">
-                        <p className="text-[11px] uppercase tracking-[0.3em] text-gray-500 mb-1">Code</p>
-                        <p className="text-lg font-bold text-white">{formatPlateForDisplay(upload.plate_number)}</p>
+                        {(() => {
+                          const plate = parsePlateParts(upload.plate_number);
+                          return (
+                            <>
+                              <div className="grid grid-cols-3 gap-2 text-xs sm:text-sm">
+                                <div className="rounded-xl border border-white/10 bg-white/5 px-2 py-2">
+                                  <p className="uppercase tracking-[0.2em] text-gray-500">Code</p>
+                                  <p className="mt-1 font-semibold text-white">{plate.code}</p>
+                                </div>
+                                <div className="rounded-xl border border-white/10 bg-white/5 px-2 py-2">
+                                  <p className="uppercase tracking-[0.2em] text-gray-500">Series</p>
+                                  <p className="mt-1 font-semibold text-white">{plate.series}</p>
+                                </div>
+                                <div className="rounded-xl border border-white/10 bg-white/5 px-2 py-2">
+                                  <p className="uppercase tracking-[0.2em] text-gray-500">Number</p>
+                                  <p className="mt-1 font-semibold text-white">{plate.number}</p>
+                                </div>
+                              </div>
+                            </>
+                          );
+                        })()}
                         <p className="mt-1 text-sm text-gray-300">{upload.driver_name || "Unknown Driver"}</p>
                         <p className="text-sm text-gray-400">{upload.driver_phone || "-"}</p>
                         <p className="mt-2 text-xs text-gray-500">
@@ -282,6 +322,8 @@ export default function Dashboard() {
                 <thead className="bg-white/5 text-gray-300">
                   <tr>
                     <th className="px-4 py-3 text-left font-semibold uppercase tracking-[0.25em] text-xs">Code</th>
+                    <th className="px-4 py-3 text-left font-semibold uppercase tracking-[0.25em] text-xs">Series</th>
+                    <th className="px-4 py-3 text-left font-semibold uppercase tracking-[0.25em] text-xs">Number</th>
                     <th className="px-4 py-3 text-left font-semibold uppercase tracking-[0.25em] text-xs">Driver Name</th>
                     <th className="px-4 py-3 text-left font-semibold uppercase tracking-[0.25em] text-xs">Phone</th>
                     <th className="px-4 py-3 text-left font-semibold uppercase tracking-[0.25em] text-xs">Uploaded</th>
@@ -291,7 +333,16 @@ export default function Dashboard() {
                 <tbody>
                   {recentUploads.map((upload) => (
                     <tr key={String(upload.id ?? `${upload.plate_number}-${upload.driver_name}`)} className="border-t border-white/10 transition-colors hover:bg-white/5">
-                      <td className="px-4 py-4 font-medium text-white">{formatPlateForDisplay(upload.plate_number)}</td>
+                      {(() => {
+                        const plate = parsePlateParts(upload.plate_number);
+                        return (
+                          <>
+                            <td className="px-4 py-4 font-medium text-white">{plate.code}</td>
+                            <td className="px-4 py-4 text-gray-200">{plate.series}</td>
+                            <td className="px-4 py-4 text-gray-200">{plate.number}</td>
+                          </>
+                        );
+                      })()}
                       <td className="px-4 py-4 text-gray-200">{upload.driver_name || "Unknown Driver"}</td>
                       <td className="px-4 py-4 text-gray-300">{upload.driver_phone || "-"}</td>
                       <td className="px-4 py-4 text-gray-300">{upload.created_at ? new Date(upload.created_at).toLocaleString() : "-"}</td>
@@ -304,11 +355,19 @@ export default function Dashboard() {
                             className="inline-block"
                             title="Open full photo"
                           >
-                            <img
-                              src={upload.image_url}
-                              alt={`Sticker ${upload.plate_number || "upload"}`}
-                              className="h-12 w-12 rounded-xl object-cover border border-white/10 transition-colors hover:border-[#8b5cf6] hover:scale-[1.02]"
-                            />
+                            {canRenderRemoteImage(upload.image_url) ? (
+                              <Image
+                                src={upload.image_url}
+                                alt={`Sticker ${upload.plate_number || "upload"}`}
+                                width={48}
+                                height={48}
+                                className="h-12 w-12 rounded-xl object-cover border border-white/10 transition-colors hover:border-[#8b5cf6] hover:scale-[1.02]"
+                              />
+                            ) : (
+                              <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-white/5">
+                                <ImageIcon size={16} className="text-gray-500" />
+                              </div>
+                            )}
                           </a>
                         ) : (
                           <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-white/5">

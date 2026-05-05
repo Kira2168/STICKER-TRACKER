@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useRouter } from "next/navigation";
 import { ChevronRight, Camera, Check, ArrowLeft, Loader2, User, Phone, Hash } from "lucide-react";
@@ -19,14 +19,14 @@ export default function UploadPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
 
   // Identity state
-  const [agentId, setAgentId] = useState<string | null>(null);
-  const [agentName, setAgentName] = useState<string | null>(null);
-
-  // Get agent info on mount
-  useEffect(() => {
-    setAgentId(localStorage.getItem("agent_id"));
-    setAgentName(localStorage.getItem("agent_name"));
-  }, []);
+  const [agentId] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem("agent_id");
+  });
+  const [agentName] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem("agent_name");
+  });
 
   const isPlateValid = (plateRegionCode === "01" || plateRegionCode === "03") && /^\d{5}$/.test(plateDigits);
   const formattedPlateNumber = `${plateRegionCode}${plateSeries ? ` ${plateSeries}` : ""} ${plateDigits}`.trim();
@@ -41,7 +41,7 @@ export default function UploadPage() {
     try {
       // 1. Upload Image to the 'stickers' bucket
       const fileName = `${Date.now()}-${imageFile.name.replace(/\s/g, '_')}`;
-      const { data: storageData, error: storageError } = await supabase.storage
+      const { error: storageError } = await supabase.storage
         .from("stickers")
         .upload(fileName, imageFile);
 
@@ -70,8 +70,9 @@ export default function UploadPage() {
       // Force a re-fetch of the data before moving to success
       router.refresh();
       setStep(5); 
-    } catch (err: any) {
-      alert(`Upload Failed: ${err.message || "Check your connection"}`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      alert(`Upload Failed: ${message || "Check your connection"}`);
       console.error(err);
     } finally {
       setLoading(false);
@@ -99,7 +100,7 @@ export default function UploadPage() {
                 <span className="text-sm font-bold uppercase tracking-widest">Step 01</span>
               </div>
               <h2 className="text-2xl font-bold mb-2 text-white sm:text-3xl">Vehicle Plate</h2>
-              <p className="text-gray-500 mb-6">Format: region code (01 or 03), optional series (A/B/C), then 5 digits.</p>
+              <p className="text-gray-500 mb-6">Region code and 5-digit plate number are required. Series A/B/C is optional.</p>
 
               <div className="grid grid-cols-3 gap-2 mb-4 sm:gap-3">
                 <select
@@ -118,7 +119,7 @@ export default function UploadPage() {
                   onChange={(e) => setPlateSeries(e.target.value as "" | "A" | "B" | "C")}
                   className="w-full bg-white/5 border border-white/10 rounded-2xl p-3 text-base outline-none focus:border-[#8b5cf6] transition-all text-white sm:text-lg"
                 >
-                  <option value="" className="text-black">None</option>
+                  <option value="" className="text-black">None / Optional</option>
                   <option value="A" className="text-black">A</option>
                   <option value="B" className="text-black">B</option>
                   <option value="C" className="text-black">C</option>
@@ -136,7 +137,7 @@ export default function UploadPage() {
               </div>
 
               <p className="text-sm text-gray-400 mb-2">Preview: {formattedPlateNumber || "-"}</p>
-              {!isPlateValid && <p className="text-xs text-amber-400">Plate must be 01 or 03, optional A/B/C, and exactly 5 digits.</p>}
+              {!isPlateValid && <p className="text-xs text-amber-400">Plate code must be 01 or 03 and the plate number must be exactly 5 digits. ABC is optional.</p>}
 
               <button 
                 disabled={!isPlateValid}
@@ -159,7 +160,7 @@ export default function UploadPage() {
                 <span className="text-sm font-bold uppercase tracking-widest">Step 02</span>
               </div>
               <h2 className="text-2xl font-bold mb-2 text-white sm:text-3xl">Driver Name</h2>
-              <p className="text-gray-500 mb-6">Enter the driver's first and last name.</p>
+              <p className="text-gray-500 mb-6">Enter the driver&apos;s first and last name.</p>
 
               <div className="grid grid-cols-1 gap-3 mb-4 sm:grid-cols-2">
                 <input

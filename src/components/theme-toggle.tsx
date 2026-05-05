@@ -15,8 +15,8 @@ export function ThemeToggle() {
 
   useEffect(() => {
     const savedTheme = (localStorage.getItem("little_theme") as Theme | null) || "light";
-    setTheme(savedTheme);
     applyTheme(savedTheme);
+    queueMicrotask(() => setTheme(savedTheme));
     if (!localStorage.getItem("little_theme")) {
       localStorage.setItem("little_theme", "light");
     }
