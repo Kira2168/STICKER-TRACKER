@@ -30,7 +30,7 @@ export async function POST(req: Request) {
 
     const token = createAdminSessionToken({ expiresInSeconds: 60 * 60 * 24 * 7 });
 
-    cookies().set({
+    (await cookies()).set({
       name: getAdminCookieName(),
       value: token,
       httpOnly: true,

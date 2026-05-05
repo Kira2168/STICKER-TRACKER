@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { getAdminCookieName } from "../../../../lib/admin-session";
 
 export async function POST() {
-  cookies().set({
+  (await cookies()).set({
     name: getAdminCookieName(),
     value: "",
     httpOnly: true,
